@@ -8,6 +8,8 @@
 #define ETHERNET_SHIELD_VERSION 1
 #endif
 
+// to set mac address see information at
+// https://www.freetronics.com.au/pages/setting-arduino-ethernet-mac-address
 #if ETHERNET_SHIELD_VERSION == 1
 #include <Ethernet.h>
 byte mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xEA};
@@ -58,7 +60,7 @@ void ethernet_init()
   }
   print_ip();
   print_mac();
-  
+
   // give the Ethernet shield a second to initialize
   delay(NETWORK_STARTUP_DELAY);
 }
