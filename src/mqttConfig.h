@@ -13,8 +13,6 @@ const unsigned long RECONNECTION_ATTEMPT_INTERVAL = 5000UL;
 
 boolean mqttClientConnected = false;
 
-const char COMMAND_SEPARATOR = ',';
-
 // callback function definition
 void callback(char *topic, uint8_t *payload, unsigned int length);
 
@@ -125,5 +123,25 @@ void publish_status()
   publish_uptime();
   publish_memory();
 }
+
+const char FLOWRATE_SENSOR[] PROGMEM = "irrigation/flowsensor/flowrate";
+
+PGM_P const SENSOR_TOPICS[] PROGMEM = {
+    FLOWRATE_SENSOR, // idx = 0
+};
+
+typedef enum
+{
+  FLOWRATE_SENSOR_IDX = 0,
+} sensor_topics;
+
+void publish_flowrate(int flowrate)
+{
+  topicBuffer[0] = '\0';
+  strcpy_P(topicBuffer, (char *)pgm_read_word(&(SENSOR_TOPICS[FLOWRATE_SENSOR_IDX])));
+  payloadBuffer[0] = '\0';
+  mqttClient.publish(topicBuffer, itoa(flowrate, payloadBuffer, 10));
+}
+
 
 #endif /* FLOWSENSOR_MQTT_CONFIG_H_ */

@@ -20,8 +20,6 @@ EthernetClient ethernetClient;
 
 const unsigned long NETWORK_STARTUP_DELAY = 1500UL;
 
-void show_dhcp_lcd();
-
 void ethernet_init()
 {
   // Configure Ethernet
@@ -29,15 +27,17 @@ void ethernet_init()
     // try to configure using IP address instead of DHCP:
     IPAddress ip(192, 168, 1, 42);
     Ethernet.begin(mac, ip);
+    Serial.print("Static IP: ");
   }
-  Serial.print("DHCP IP: ");
+  else {
+    Serial.print("DHCP IP: ");
+  }
   for (byte thisByte = 0; thisByte < 4; thisByte++)
   { // print the value of each byte of the IP address:
     Serial.print(Ethernet.localIP()[thisByte], DEC);
     Serial.print(".");
   } //end for
   Serial.println();
-  show_dhcp_lcd(); // display on LCD
 
   // give the Ethernet shield a second to initialize
   delay(NETWORK_STARTUP_DELAY);
