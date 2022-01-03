@@ -1,3 +1,47 @@
+#include <Arduino.h>
+
+#include "config.h"
+
+void show_mqtt_connected_lcd();
+
+boolean mqtt_connect()
+{
+  // Create a random client ID
+  String clientId = MQTT_CLIENT_ID;
+  clientId += String(random(0xffff), HEX);
+  if (mqttClient.connect(clientId.c_str()))
+  {
+    show_mqtt_connected_lcd();
+    // Once connected, publish an announcement ...
+    publish_connected();
+    publish_configuration();
+    publish_status();
+  }
+  return mqttClient.connected();
+}
+
+void callback(char *topic, uint8_t *payload, unsigned int payloadLength)
+{
+}
+
+/*
+ *************** Configure Flowmeter ***************
+ */
+// https://www.seeedstudio.com/G3-4-Water-Flow-Sensor-p-1083.html
+// https://wiki.seeedstudio.com/G3-4_Water_Flow_sensor/
+
+volatile int NbTopsFan; //measuring the rising edges of the signal
+int Calc;
+int hallsensor = 2; //The pin location of the sensor
+
+void rpm() //This is the function that the interrupt calls
+{
+  NbTopsFan++; //This function measures the rising and falling edge of the hall effect sensors signal
+}
+
+const unsigned long FLOWRATE_PUBLISH_INTERVAL = 5000UL;
+unsigned long flowratePreviousMillis = 0UL;
+
 /*
  *************** Configure LCD ***************
  Based on example code for the Freetronics LCD & Keypad Shield:
@@ -128,66 +172,31 @@ byte ReadButtons()
   return (button);
 }
 
-/*
- *************** Configure Network ***************
- */
-
-#include <Ethernet.h>
-
-byte mac[] = {0x90, 0xA2, 0xDA, 0x0F, 0xFC, 0xA9};
-
-EthernetClient net;
-
-
-/*
- *************** Configure Flowmeter ***************
- */
-// https://www.seeedstudio.com/G3-4-Water-Flow-Sensor-p-1083.html
-// https://wiki.seeedstudio.com/G3-4_Water_Flow_sensor/
-
-volatile int NbTopsFan; //measuring the rising edges of the signal
-int Calc;
-int hallsensor = 2; //The pin location of the sensor
-
-void rpm() //This is the function that the interupt calls
+// based on https://github.com/Ayresindustries/EXT_IP_Tracker/blob/master/EXTIP_Rev_B.ino
+void show_dhcp_lcd()
 {
-  NbTopsFan++; //This function measures the rising and falling edge of the hall effect sensors signal
-}
-
-
-/*
- *************** Configure MQTT ***************
- */
-
-#include <MQTT.h>
-MQTTClient client;
-
-unsigned long lastMillis = 0;
-
-void connect()
-{
-  Serial.print("connecting...");
-  while (!client.connect("arduino"))
-  {
-    Serial.print(".");
-    delay(1000);
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("DHCP IP: ");
+  lcd.setCursor(0, 1);
+  for (byte thisByte = 0; thisByte < 4; thisByte++)
+  { // print the value of each byte of the IP address:
+    lcd.print(Ethernet.localIP()[thisByte], DEC);
+    if (thisByte < 3)
+      lcd.print(".");
   }
-
-  Serial.println("\nconnected!");
-
-  client.subscribe("/hello");
-  // client.unsubscribe("/hello");
 }
 
-void messageReceived(String &topic, String &payload)
+// based on https://github.com/Ayresindustries/EXT_IP_Tracker/blob/master/EXTIP_Rev_B.ino
+void show_mqtt_connected_lcd()
 {
-  Serial.println("incoming: " + topic + " - " + payload);
-
-  // Note: Do not use the client in the callback to publish, subscribe or
-  // unsubscribe as it may cause deadlocks when other things arrive while
-  // sending and receiving acknowledgments. Instead, change a global variable,
-  // or push to a queue and handle it in the loop after calling `client.loop()`.
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("MQTT");
+  lcd.setCursor(0, 1);
+  lcd.print("Connected!!");
 }
+
 
 /*
  *************** Arduino methods ***************
@@ -196,38 +205,24 @@ void messageReceived(String &topic, String &payload)
 void setup()
 {
   Serial.begin(9600);
-
-  // Ethernet.begin(mac);
-
-  // client.begin("192.168.1.186", net);
-  // client.onMessage(messageReceived);
-
-  // connect();
-
-  // configure lcd
-
-  lcd.begin(16, 2);
-  lcd.clear();
+  Serial.println("Setup");
 
   //button adc input
-  pinMode(BUTTON_ADC_PIN, INPUT);    //ensure A0 is an input
-  digitalWrite(BUTTON_ADC_PIN, LOW); //ensure pullup is off on A0
+  pinMode(BUTTON_ADC_PIN, INPUT);     //ensure A0 is an input
+  digitalWrite(BUTTON_ADC_PIN, LOW);  //ensure pullup is off on A0
+  pinMode(LCD_BACKLIGHT_PIN, OUTPUT); //D3 is an output
   //lcd backlight control
   digitalWrite(LCD_BACKLIGHT_PIN, HIGH); //backlight control pin D3 is high (on)
-  pinMode(LCD_BACKLIGHT_PIN, OUTPUT);    //D3 is an output
+
   //set up the LCD number of columns and rows:
-  lcd.begin(16, 2);
-  //Print some initial text to the LCD.
-  lcd.setCursor(0, 0); //top left
-  //         0123456789012345
-  lcd.print("Relay: ");
-  //
-  lcd.setCursor(0, 1); //bottom left
-  //         0123456789012345
-  lcd.print("Rate: ");
+  lcd.begin(16, 2); // 16 characters, 2 rows
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Startup...");
 
-  // configure flowmeter sensor
-
+  // configure ethernet
+  ethernet_init();
+  
   pinMode(hallsensor, INPUT); //initializes digital pin 2 as an input
   attachInterrupt(0, rpm, RISING); //and the interrupt is attached
 }
@@ -239,9 +234,39 @@ void loop()
   delay(1000);                   //Wait 1 second
   cli();                         //Disable interrupts
   Calc = (NbTopsFan * 60 / 5.5); //(Pulse frequency x 60) / 5.5Q, = flow rate in L / hour
-  //          0123456789012345
-  //         "Rate: "
-  lcd.setCursor(6, 1);           //Move display cursor to after "Rate: "
-  lcd.print(Calc, DEC);          //Displays the number calculated above
-  lcd.print(" L/h");             //Displays "L/h"
+
+  unsigned long now = millis();
+
+  if (!mqttClient.connected())
+  {
+    mqttClientConnected = false;
+    if (now - lastReconnectAttempt > RECONNECTION_ATTEMPT_INTERVAL)
+    {
+      lastReconnectAttempt = now;
+      // Attempt to reconnect
+      if (mqtt_connect())
+      {
+        lastReconnectAttempt = 0;
+        mqttClientConnected = true;
+      }
+    }
+  }
+  
+  if (now - statusPreviousMillis >= STATUS_UPDATE_INTERVAL)
+  {
+    if (mqttClientConnected)
+    {
+      statusPreviousMillis = now;
+      publish_status();
+    }
+  }
+
+  if (now - flowratePreviousMillis >= FLOWRATE_PUBLISH_INTERVAL)
+  {
+    if (mqttClientConnected)
+    {
+      flowratePreviousMillis = now;
+      publish_status();
+    }
+  }
 }
