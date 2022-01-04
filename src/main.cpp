@@ -2,19 +2,29 @@
 
 #include "config.h"
 
-boolean mqtt_connect()
+boolean mqtt_connect_status()
 {
   // Create a random client ID
-  String clientId = MQTT_CLIENT_ID;
-  clientId += String(random(0xffff), HEX);
-  if (mqttClient.connect(clientId.c_str()))
+  if (mqttClient.connect(MQTT_CLIENT_ID))
   {
     Serial.print("MQTT connected as ");
-    Serial.println(clientId);
+    Serial.println(MQTT_CLIENT_ID);
     // Once connected, publish an announcement ...
     publish_connected();
     publish_configuration();
     publish_status();
+  }
+  return mqttClient.connected();
+}
+
+boolean mqtt_connect_flowrate(int flowrate)
+{
+  // Create a random client ID
+  if (mqttClient.connect(MQTT_CLIENT_ID))
+  {
+    Serial.print("MQTT connected as ");
+    Serial.println(MQTT_CLIENT_ID);
+    publish_flowrate(flowrate);
   }
   return mqttClient.connected();
 }
@@ -30,7 +40,7 @@ void callback(char *topic, uint8_t *payload, unsigned int payloadLength)
 // https://wiki.seeedstudio.com/G3-4_Water_Flow_sensor/
 
 volatile int NbTopsFan; //measuring the rising edges of the signal
-int flowrate;
+int flowrate = 0;
 const unsigned int hallsensor = 2; //The pin location of the sensor
 
 void rpm() //This is the function that the interrupt calls
@@ -57,54 +67,66 @@ void setup()
   // configure flowmeter
   pinMode(hallsensor, INPUT); //initializes digital pin 2 as an input
   attachInterrupt(0, rpm, RISING); //and the interrupt is attached
+
+  randomSeed(analogRead(0));
+
+  Serial.print("Buffer size: ");
+  Serial.println(DEFAULT_BUFFER_SIZE);
 }
 
 void loop()
 {
+  // Flowrate measurement
   NbTopsFan = 0;                 //Set NbTops to 0 ready for calculations
   sei();                         //Enables interrupts
   delay(1000);                   //Wait 1 second
   cli();                         //Disable interrupts
   flowrate = (NbTopsFan * 60 / 5.5); //(Pulse frequency x 60) / 5.5Q, = flow rate in L / hour
 
+  // MQTT publishing
   unsigned long now = millis();
 
-  // ensure connected to MQTT broker
-  if (!mqttClient.connected())
-  {
-    mqttClientConnected = false;
-    if (now - lastReconnectAttempt > RECONNECTION_ATTEMPT_INTERVAL)
-    {
-      lastReconnectAttempt = now;
-      // Attempt to reconnect
-      if (mqtt_connect())
-      {
-        lastReconnectAttempt = 0;
-        mqttClientConnected = true;
-      }
-    }
-  }
-  
+  // // ensure connected to MQTT broker
+  // if (!mqttClient.connected())
+  // {
+  //   mqttClientConnected = false;
+  //   if (now - lastReconnectAttempt > RECONNECTION_ATTEMPT_INTERVAL)
+  //   {
+  //     lastReconnectAttempt = now;
+  //     // Attempt to reconnect
+  //     if (mqtt_connect())
+  //     {
+  //       lastReconnectAttempt = 0;
+  //       mqttClientConnected = true;
+  //     }
+  //   }
+  // }
+  // else
+  // {
+  //   // Client connected
+  //   mqttClient.loop();
+  // }
+
   // publish status message
   if (now - statusPreviousMillis >= STATUS_UPDATE_INTERVAL)
   {
     if (mqttClientConnected)
     {
       statusPreviousMillis = now;
-      publish_status();
+      mqtt_connect_status();
     }
   }
 
   // publish flowrate
+  // if (flowrate > 1)
+  // {
   if (now - flowratePreviousMillis >= FLOWRATE_PUBLISH_INTERVAL)
   {
-    if (flowrate > 1)
-    {
-      if (mqttClientConnected)
-      {
-        flowratePreviousMillis = now;
-        publish_flowrate(flowrate);
-      }
-    }
+      flowratePreviousMillis = now;
+      mqtt_connect_flowrate(flowrate);
   }
+  // }
+
+  // TODO: add a condition for flowrate < 1
+
 }

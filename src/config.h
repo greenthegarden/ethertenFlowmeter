@@ -14,7 +14,7 @@
 // global variable definitions
 const byte BUFFER_SIZE = DEFAULT_BUFFER_SIZE;
 char topicBuffer[BUFFER_SIZE];
-char payloadBuffer[BUFFER_SIZE];
+char payloadBuffer[BUFFER_SIZE/2];
 
 const unsigned long STATUS_UPDATE_INTERVAL = 5UL * 60UL * 1000UL; // 5 minutes
 unsigned long statusPreviousMillis = 0UL;
