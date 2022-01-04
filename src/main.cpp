@@ -68,13 +68,13 @@ void setup()
   Ethernet.begin(mac);
 
   // set device's details (optional)
-  device.setName("Arduino");
+  device.setName("Flowmeter");
   device.setSoftwareVersion("1.0.0");
 
   // configure sensor (optional)
   flowmeter.setUnitOfMeasurement("L/h");
-  flowmeter.setDeviceClass("temperature");
-  flowmeter.setIcon("mdi:home");
+  flowmeter.setDeviceClass("None");
+  flowmeter.setIcon("mdi:pump");
   flowmeter.setName("Irrigation flowrate");
 
   mqtt.begin(BROKER_ADDR);
@@ -102,6 +102,9 @@ void loop()
   {
     sensorLastSent = now;
     flowmeter.setValue(flowrate);
+    Serial.print("Flowrate: ");
+    Serial.print(flowrate);
+    Serial.println(" L/h");
 
     // Supported data types:
     // uint32_t (uint16_t, uint8_t)
