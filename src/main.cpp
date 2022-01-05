@@ -19,9 +19,6 @@ HASensor flowmeter("flowmeter"); // "temp" is unique ID of the sensor. You shoul
 void onMqttConnected()
 {
   Serial.println("Connected to the broker!");
-
-  // You can subscribe to custom topic if you need
-  mqtt.subscribe("myCustomTopic");
 }
 
 void onMqttConnectionFailed()
@@ -73,7 +70,7 @@ void setup()
 
   // configure sensor (optional)
   flowmeter.setUnitOfMeasurement("L/h");
-  flowmeter.setDeviceClass("None");
+  // flowmeter.setDeviceClass("None");
   flowmeter.setIcon("mdi:pump");
   flowmeter.setName("Irrigation flowrate");
 
