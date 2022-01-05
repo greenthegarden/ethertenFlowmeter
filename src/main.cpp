@@ -1,3 +1,5 @@
+// #include "ethernetConfig.h"
+// #include "mqttConfig.h"
 #include <Ethernet.h>
 #include <ArduinoHA.h>
 
@@ -48,9 +50,18 @@ void rpm() //This is the function that the interrupt calls
   NbTopsFan++; //This function measures the rising and falling edge of the hall effect sensors signal
 }
 
-const unsigned long SENSOR_PUBLISH_INTERVAL = 5000UL;
+const unsigned long SENSOR_PUBLISH_INTERVAL_SLOW = 5UL * 60UL + 1000UL; // 5 minutes
+const unsigned long SENSOR_PUBLISH_INTERVAL_FAST = 5UL * 1000UL; // 5 seconds
 unsigned long sensorLastSent = 0UL;
 
+void sensor_state_update(unsigned long now)
+{
+  sensorLastSent = now;
+  flowmeter.setValue(flowrate);
+  Serial.print("Flowrate: ");
+  Serial.print(flowrate);
+  Serial.println(" L/h");
+}
 
 /*
  *************** Arduino methods ***************
@@ -95,20 +106,15 @@ void loop()
 
   unsigned long now = millis();
 
-  if ((now - sensorLastSent) >= SENSOR_PUBLISH_INTERVAL)
-  {
-    sensorLastSent = now;
-    flowmeter.setValue(flowrate);
-    Serial.print("Flowrate: ");
-    Serial.print(flowrate);
-    Serial.println(" L/h");
-
-    // Supported data types:
-    // uint32_t (uint16_t, uint8_t)
-    // int32_t (int16_t, int8_t)
-    // double
-    // float
-    // const char*
+  if (flowrate < 1) {
+    if ((now - sensorLastSent) >= SENSOR_PUBLISH_INTERVAL_SLOW) {
+      sensor_state_update(now);
+    }
+  }
+  else {
+    if ((now - sensorLastSent) >= SENSOR_PUBLISH_INTERVAL_FAST) {
+      sensor_state_update(now);
+    }
   }
 
   // TODO: add a condition for flowrate < 1
