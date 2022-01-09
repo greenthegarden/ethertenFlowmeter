@@ -107,15 +107,16 @@ void loop()
   unsigned long now = millis();
 
   if (flowrate < 1) {
+    Serial.println("Slow update");
     if ((now - sensorLastSent) >= SENSOR_PUBLISH_INTERVAL_SLOW) {
       sensor_state_update(now);
     }
   }
   else {
-    if ((now - sensorLastSent) >= SENSOR_PUBLISH_INTERVAL_FAST) {
+    Serial.println("Fast update");
+    if ((now - sensorLastSent) >= SENSOR_PUBLISH_INTERVAL_FAST)
+    {
       sensor_state_update(now);
     }
   }
-
-  // TODO: add a condition for flowrate < 1
 }
