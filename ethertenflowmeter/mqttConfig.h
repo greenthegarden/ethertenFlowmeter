@@ -104,13 +104,13 @@ void publish_uptime()
   mqttClient.publish(topicBuffer, ltoa(millis(), payloadBuffer, 10));
 }
 
-void publish_memory()
-{
-  topicBuffer[0] = '\0';
-  strcpy_P(topicBuffer, (char *)pgm_read_word(&(STATUS_TOPICS[MEMORY_STATUS_IDX])));
-  payloadBuffer[0] = '\0';
-  mqttClient.publish(topicBuffer, itoa(getFreeMemory(), payloadBuffer, 10));
-}
+// void publish_memory()
+// {
+//   topicBuffer[0] = '\0';
+//   strcpy_P(topicBuffer, (char *)pgm_read_word(&(STATUS_TOPICS[MEMORY_STATUS_IDX])));
+//   payloadBuffer[0] = '\0';
+//   mqttClient.publish(topicBuffer, itoa(getFreeMemory(), payloadBuffer, 10));
+// }
 
 void publish_configuration()
 {
@@ -121,7 +121,7 @@ void publish_configuration()
 void publish_status()
 {
   publish_uptime();
-  publish_memory();
+  // publish_memory();
 }
 
 const char FLOWRATE_SENSOR[] PROGMEM = "irrigation/flowsensor/flowrate";

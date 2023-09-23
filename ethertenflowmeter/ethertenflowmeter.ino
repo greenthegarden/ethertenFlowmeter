@@ -31,7 +31,7 @@ void callback(char *topic, uint8_t *payload, unsigned int payloadLength)
 
 volatile int NbTopsFan; //measuring the rising edges of the signal
 int flowrate;
-const unsigned int hallsensor = 2; //The pin location of the sensor
+const pin_size_t flowsensor_pin = 4; //The pin location of the sensor
 
 void rpm() //This is the function that the interrupt calls
 {
@@ -55,17 +55,20 @@ void setup()
   ethernet_init();
   
   // configure flowmeter
-  pinMode(hallsensor, INPUT); //initializes digital pin 2 as an input
-  attachInterrupt(0, rpm, RISING); //and the interrupt is attached
+  pinMode(flowsensor_pin, INPUT_PULLUP); //initializes digital pin 2 as an input
+  attachInterrupt(digitalPinToInterrupt(flowsensor_pin), rpm, RISING); //and the interrupt is attached
 }
 
 void loop()
 {
   NbTopsFan = 0;                 //Set NbTops to 0 ready for calculations
-  sei();                         //Enables interrupts
+  interrupts();                  //Enables interrupts
   delay(1000);                   //Wait 1 second
-  cli();                         //Disable interrupts
+  noInterrupts();                //Disable interrupts
   flowrate = (NbTopsFan * 60 / 5.5); //(Pulse frequency x 60) / 5.5Q, = flow rate in L / hour
+  Serial.print("Flowrate: ");
+  Serial.print(flowrate);
+  Serial.println();
 
   unsigned long now = millis();
 
