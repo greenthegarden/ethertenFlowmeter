@@ -4,8 +4,8 @@
 #include <PubSubClient.h>
 
 // MQTT parameters
-IPAddress mqttServerAddr(192, 168, 1, 186); // home-assistant
-const char MQTT_CLIENT_ID[] = "f";
+IPAddress mqttServerAddr(192, 168, 1, 207); // emqx.broker.localdomain
+const char MQTT_CLIENT_ID[] = "irrigation";
 const int  MQTT_PORT        = 1883;
 
 unsigned long lastReconnectAttempt = 0UL;
@@ -142,6 +142,5 @@ void publish_flowrate(int flowrate)
   payloadBuffer[0] = '\0';
   mqttClient.publish(topicBuffer, itoa(flowrate, payloadBuffer, 10));
 }
-
 
 #endif /* FLOWSENSOR_MQTT_CONFIG_H_ */

@@ -51,7 +51,7 @@ void ethernet_init()
   // Configure Ethernet
   if (Ethernet.begin(mac) == 0) {
     // try to configure using IP address instead of DHCP:
-    IPAddress ip(192, 168, 1, 42);
+    IPAddress ip(192, 168, 1, 251);
     Ethernet.begin(mac, ip);
     Serial.print("Static IP: ");
   }

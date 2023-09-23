@@ -1,6 +1,10 @@
 #ifndef FLOWSENSOR_CONFIG_H_
 #define FLOWSENSOR_CONFIG_H_
 
+#ifndef VERSION
+#define VERSION "1.0"
+#endif
+
 #ifndef DEFAULT_BUFFER_SIZE
 #define DEFAULT_BUFFER_SIZE 32
 #endif
